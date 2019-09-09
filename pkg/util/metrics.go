@@ -145,7 +145,7 @@ func InitializeMetrics(metricsConfig *MetricConfig) {
 }
 
 // Depth Metric for the kubernetes workqueue.
-func (p *WorkQueueMetrics) NewDepthMetric(name string) workqueue.GaugeMetric {
+func (p *WorkQueueMetrics) NewDeprecatedDepthMetric(name string) workqueue.GaugeMetric {
 	depthMetric := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: CreateValidMetricNameLabel(p.prefix, name+"_depth"),
 		Help: fmt.Sprintf("Current depth of workqueue: %s", name),
@@ -156,7 +156,7 @@ func (p *WorkQueueMetrics) NewDepthMetric(name string) workqueue.GaugeMetric {
 }
 
 // Adds Count Metrics for the kubernetes workqueue.
-func (p *WorkQueueMetrics) NewAddsMetric(name string) workqueue.CounterMetric {
+func (p *WorkQueueMetrics) NewDeprecatedAddsMetric(name string) workqueue.CounterMetric {
 	addsMetric := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: CreateValidMetricNameLabel(p.prefix, name+"_adds"),
 		Help: fmt.Sprintf("Total number of adds handled by workqueue: %s", name),
@@ -166,7 +166,7 @@ func (p *WorkQueueMetrics) NewAddsMetric(name string) workqueue.CounterMetric {
 }
 
 // Latency Metric for the kubernetes workqueue.
-func (p *WorkQueueMetrics) NewLatencyMetric(name string) workqueue.SummaryMetric {
+func (p *WorkQueueMetrics) NewDeprecatedLatencyMetric(name string) workqueue.SummaryMetric {
 	latencyMetric := prometheus.NewSummary(prometheus.SummaryOpts{
 		Name: CreateValidMetricNameLabel(p.prefix, name+"_latency"),
 		Help: fmt.Sprintf("Latency for workqueue: %s", name),
@@ -176,7 +176,7 @@ func (p *WorkQueueMetrics) NewLatencyMetric(name string) workqueue.SummaryMetric
 }
 
 // WorkDuration Metric for the kubernetes workqueue.
-func (p *WorkQueueMetrics) NewWorkDurationMetric(name string) workqueue.SummaryMetric {
+func (p *WorkQueueMetrics) NewDeprecatedWorkDurationMetric(name string) workqueue.SummaryMetric {
 	workDurationMetric := prometheus.NewSummary(prometheus.SummaryOpts{
 		Name: CreateValidMetricNameLabel(p.prefix, name+"_work_duration"),
 		Help: fmt.Sprintf("How long processing an item from workqueue %s takes.", name),
@@ -186,7 +186,7 @@ func (p *WorkQueueMetrics) NewWorkDurationMetric(name string) workqueue.SummaryM
 }
 
 // Retry Metric for the kubernetes workqueue.
-func (p *WorkQueueMetrics) NewRetriesMetric(name string) workqueue.CounterMetric {
+func (p *WorkQueueMetrics) NewDeprecatedRetriesMetric(name string) workqueue.CounterMetric {
 	retriesMetrics := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: CreateValidMetricNameLabel(p.prefix, name+"_retries"),
 		Help: fmt.Sprintf("Total number of retries handled by workqueue: %s", name),
@@ -195,7 +195,7 @@ func (p *WorkQueueMetrics) NewRetriesMetric(name string) workqueue.CounterMetric
 	return retriesMetrics
 }
 
-func (p *WorkQueueMetrics) NewUnfinishedWorkSecondsMetric(name string) workqueue.SettableGaugeMetric {
+func (p *WorkQueueMetrics) NewDeprecatedUnfinishedWorkSecondsMetric(name string) workqueue.SettableGaugeMetric {
 	unfinishedWorkSecondsMetric := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: CreateValidMetricNameLabel(p.prefix, name+"_unfinished_work_seconds"),
 		Help: fmt.Sprintf("Unfinished work seconds: %s", name),
@@ -205,7 +205,7 @@ func (p *WorkQueueMetrics) NewUnfinishedWorkSecondsMetric(name string) workqueue
 	return unfinishedWorkSecondsMetric
 }
 
-func (p *WorkQueueMetrics) NewLongestRunningProcessorMicrosecondsMetric(name string) workqueue.SettableGaugeMetric {
+func (p *WorkQueueMetrics) NewDeprecatedLongestRunningProcessorMicrosecondsMetric(name string) workqueue.SettableGaugeMetric {
 	longestRunningProcessorMicrosecondsMetric := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: CreateValidMetricNameLabel(p.prefix, name+"_longest_running_processor_microseconds"),
 		Help: fmt.Sprintf("Longest running processor microseconds: %s", name),
@@ -213,4 +213,40 @@ func (p *WorkQueueMetrics) NewLongestRunningProcessorMicrosecondsMetric(name str
 	)
 	RegisterMetric(longestRunningProcessorMicrosecondsMetric)
 	return longestRunningProcessorMicrosecondsMetric
+}
+
+// TODO: Replace above deprecated metrics (see https://github.com/kubernetes/kubernetes/pull/71300)
+type noopMetric struct{}
+
+func (noopMetric) Inc()            {}
+func (noopMetric) Dec()            {}
+func (noopMetric) Set(float64)     {}
+func (noopMetric) Observe(float64) {}
+
+func (*WorkQueueMetrics) NewDepthMetric(queue string) workqueue.GaugeMetric {
+	return noopMetric{}
+}
+
+func (*WorkQueueMetrics) NewAddsMetric(queue string) workqueue.CounterMetric {
+	return noopMetric{}
+}
+
+func (*WorkQueueMetrics) NewLatencyMetric(queue string) workqueue.HistogramMetric {
+	return noopMetric{}
+}
+
+func (*WorkQueueMetrics) NewWorkDurationMetric(queue string) workqueue.HistogramMetric {
+	return noopMetric{}
+}
+
+func (*WorkQueueMetrics) NewUnfinishedWorkSecondsMetric(queue string) workqueue.SettableGaugeMetric {
+	return noopMetric{}
+}
+
+func (*WorkQueueMetrics) NewLongestRunningProcessorSecondsMetric(queue string) workqueue.SettableGaugeMetric {
+	return noopMetric{}
+}
+
+func (*WorkQueueMetrics) NewRetriesMetric(queue string) workqueue.CounterMetric {
+	return noopMetric{}
 }

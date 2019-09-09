@@ -29,7 +29,6 @@ import (
 	"github.com/golang/glog"
 
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
-	"k8s.io/api/admissionregistration/v1beta1"
 	arv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -78,8 +77,8 @@ type WebHook struct {
 	lister                         crdlisters.SparkApplicationLister
 	server                         *http.Server
 	certProvider                   *certProvider
-	serviceRef                     *v1beta1.ServiceReference
-	failurePolicy                  v1beta1.FailurePolicyType
+	serviceRef                     *arv1beta1.ServiceReference
+	failurePolicy                  arv1beta1.FailurePolicyType
 	selector                       *metav1.LabelSelector
 	sparkJobNamespace              string
 	deregisterOnExit               bool
@@ -137,7 +136,7 @@ func New(
 	}
 
 	path := "/webhook"
-	serviceRef := &v1beta1.ServiceReference{
+	serviceRef := &arv1beta1.ServiceReference{
 		Namespace: userConfig.webhookServiceNamespace,
 		Name:      userConfig.webhookServiceName,
 		Path:      &path,
@@ -351,10 +350,10 @@ func (wh *WebHook) selfRegistration(webhookConfigName string) error {
 		return err
 	}
 
-	mutatingRules := []v1beta1.RuleWithOperations{
+	mutatingRules := []arv1beta1.RuleWithOperations{
 		{
-			Operations: []v1beta1.OperationType{v1beta1.Create},
-			Rule: v1beta1.Rule{
+			Operations: []arv1beta1.OperationType{arv1beta1.Create},
+			Rule: arv1beta1.Rule{
 				APIGroups:   []string{""},
 				APIVersions: []string{"v1"},
 				Resources:   []string{"pods"},
@@ -362,10 +361,10 @@ func (wh *WebHook) selfRegistration(webhookConfigName string) error {
 		},
 	}
 
-	validatingRules := []v1beta1.RuleWithOperations{
+	validatingRules := []arv1beta1.RuleWithOperations{
 		{
-			Operations: []v1beta1.OperationType{v1beta1.Create, v1beta1.Update},
-			Rule: v1beta1.Rule{
+			Operations: []arv1beta1.OperationType{arv1beta1.Create, arv1beta1.Update},
+			Rule: arv1beta1.Rule{
 				APIGroups:   []string{crdapi.GroupName},
 				APIVersions: []string{crdv1beta1.Version},
 				Resources:   []string{sparkApplicationResource.Resource, scheduledSparkApplicationResource.Resource},
@@ -373,10 +372,10 @@ func (wh *WebHook) selfRegistration(webhookConfigName string) error {
 		},
 	}
 
-	mutatingWebhook := v1beta1.Webhook{
+	mutatingWebhook := arv1beta1.MutatingWebhook{
 		Name:  webhookName,
 		Rules: mutatingRules,
-		ClientConfig: v1beta1.WebhookClientConfig{
+		ClientConfig: arv1beta1.WebhookClientConfig{
 			Service:  wh.serviceRef,
 			CABundle: caCert,
 		},
@@ -384,10 +383,10 @@ func (wh *WebHook) selfRegistration(webhookConfigName string) error {
 		NamespaceSelector: wh.selector,
 	}
 
-	validatingWebhook := v1beta1.Webhook{
+	validatingWebhook := arv1beta1.ValidatingWebhook{
 		Name:  quotaWebhookName,
 		Rules: validatingRules,
-		ClientConfig: v1beta1.WebhookClientConfig{
+		ClientConfig: arv1beta1.WebhookClientConfig{
 			Service:  wh.serviceRef,
 			CABundle: caCert,
 		},
@@ -395,8 +394,8 @@ func (wh *WebHook) selfRegistration(webhookConfigName string) error {
 		NamespaceSelector: wh.selector,
 	}
 
-	mutatingWebhooks := []v1beta1.Webhook{mutatingWebhook}
-	validatingWebhooks := []v1beta1.Webhook{validatingWebhook}
+	mutatingWebhooks := []arv1beta1.MutatingWebhook{mutatingWebhook}
+	validatingWebhooks := []arv1beta1.ValidatingWebhook{validatingWebhook}
 
 	mutatingExisting, mutatingGetErr := mwcClient.Get(webhookConfigName, metav1.GetOptions{})
 	if mutatingGetErr != nil {
@@ -405,7 +404,7 @@ func (wh *WebHook) selfRegistration(webhookConfigName string) error {
 		}
 		// Create case.
 		glog.Info("Creating a MutatingWebhookConfiguration for the Spark pod admission webhook")
-		webhookConfig := &v1beta1.MutatingWebhookConfiguration{
+		webhookConfig := &arv1beta1.MutatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: webhookConfigName,
 			},
@@ -433,7 +432,7 @@ func (wh *WebHook) selfRegistration(webhookConfigName string) error {
 			}
 			// Create case.
 			glog.Info("Creating a ValidatingWebhookConfiguration for the SparkApplication resource quota enforcement webhook")
-			webhookConfig := &v1beta1.ValidatingWebhookConfiguration{
+			webhookConfig := &arv1beta1.ValidatingWebhookConfiguration{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: webhookConfigName,
 				},
